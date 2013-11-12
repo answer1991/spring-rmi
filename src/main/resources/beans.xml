@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+
+	<!-- Annotation injection is performed before XML injection -->
+	<!-- 要使用注解，必须加上这个标签 -->
+	<context:annotation-config />
+	<context:component-scan base-package="com.answer1991.**" />
+
+	<mvc:annotation-driven />
+	<mvc:default-servlet-handler />
+
+	<!-- 用Ant EL表达式的方式将Bean里面的value替换掉 -->
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+			</list>
+		</property>
+		<!-- 这里的优先级低于外部的 -->
+		<property name="properties">
+			<value></value>
+		</property>
+	</bean>
+
+	<!-- local service -->
+	<bean id="accountServiceLocal" class="com.answer1991.rmi.AccountServiceImpl"></bean>
+
+	<!-- rmi service -->
+	<bean id="remoteRmiAccountService" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="serviceName" value="AccountService"></property>
+		<property name="service" ref="accountServiceLocal"></property>
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+		<property name="registryPort" value="1199"></property>
+	</bean>
+	
+	<bean id="accountRmiClient" class="com.answer1991.rmi.rmi.AccountRmiClient">
+		<property name="accountService" ref="accountRmiProxy"></property>
+	</bean>
+	
+	<bean id="accountRmiProxy" class="org.springframework.remoting.rmi.RmiProxyFactoryBean" depends-on="remoteRmiAccountService">
+		<property name="serviceUrl" value="rmi://localhost:1199/AccountService"></property>
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+	</bean>
+	<!-- rmi service end -->
+
+	<!-- Hessian -->
+	<bean name="/AccountService"
+		class="org.springframework.remoting.caucho.HessianServiceExporter">
+		<property name="service" ref="accountServiceLocal"></property>
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+	</bean>
+
+	<bean class="com.answer1991.rmi.hessian.HessianClient">
+		<property name="accountService" ref="hessianClientProxy" />
+	</bean>
+	
+	<bean id="hessianClientProxy"
+		class="org.springframework.remoting.caucho.HessianProxyFactoryBean">
+		<property name="serviceUrl"
+			value="http://localhost:8080/spring-rmi/remoting/AccountService" />
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService" />
+	</bean>
+	<!-- Hessian end -->
+	
+	<!-- HttpInvoker -->
+	<bean id="/AccountService2" class="org.springframework.remoting.httpinvoker.HttpInvokerServiceExporter">
+		<property name="service" ref="accountServiceLocal"></property>
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+	</bean>
+	
+	<bean id="httpInvokerProxy" class="org.springframework.remoting.httpinvoker.HttpInvokerProxyFactoryBean">
+		<property name="serviceUrl" value="http://localhost:8080/spring-rmi/remoting/AccountService2"></property>
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+	</bean>
+	
+	<bean id="httpInvokerClient" class="com.answer1991.rmi.httpinvoker.AccountHttpInvokerClient">
+		<property name="accountService" ref="httpInvokerProxy"></property>
+	</bean>
+	<!-- HttpInvoker end -->
+	
+	<!-- WebService standalone setup -->
+	<bean id="wsExporter" class="org.springframework.remoting.jaxws.SimpleJaxWsServiceExporter">
+		<property name="baseAddress" value="http://localhost:8082/"></property>
+	</bean>
+	<!-- the WebService endpoint bean -->
+	<bean id="accountServiceEndPoint" class="com.answer1991.rmi.ws.AccountWebService">
+	</bean>
+	<bean id="accountWSProxy" class="org.springframework.remoting.jaxws.JaxWsPortProxyFactoryBean" depends-on="wsExporter">
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+		<property name="wsdlDocumentUrl" value="http://localhost:8082/AccountService?wsdl"></property>
+		<property name="namespaceUri" value="http://ws.answer1991.com"></property>
+		<property name="serviceName" value="AccountService"></property>
+		<property name="portName" value="AccountServiceEndPort"/>
+	</bean>
+	<bean id="accountWSClient" class="com.answer1991.rmi.ws.AccountWSClient">
+		<property name="accountService" ref="accountWSProxy"></property>
+	</bean>
+	<!-- WebService end -->
+</beans>

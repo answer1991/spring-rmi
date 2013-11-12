@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context.xsd">
+
+
+	<!-- Annotation injection is performed before XML injection -->
+	<!-- 要使用注解，必须加上这个标签 -->
+	<context:annotation-config />
+
+	<!-- 用Ant EL表达式的方式将Bean里面的value替换掉 -->
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+			</list>
+		</property>
+		<!-- 这里的优先级低于外部的 -->
+		<property name="properties">
+			<value></value>
+		</property>
+	</bean>
+
+
+	<bean id="accountClient" class="com.answer1991.rmi.AccountClient">
+		<property name="accountService" ref="accountService"></property>
+	</bean>
+	
+	<bean id="accountService" class="org.springframework.remoting.rmi.RmiProxyFactoryBean">
+		<property name="serviceUrl" value="rmi://localhost:1199/AccountService"></property>
+		<property name="serviceInterface" value="com.answer1991.rmi.AccountService"></property>
+	</bean>
+</beans>
